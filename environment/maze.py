@@ -3,6 +3,7 @@ from enum import Enum, IntEnum
 
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 
 class Cell(IntEnum):
@@ -55,7 +56,7 @@ class Maze:
     penalty_visited = -0.25  # penalty for returning to a cell which was visited earlier
     penalty_impossible_move = -0.75  # penalty for trying to enter an occupied cell or moving out of the maze
 
-    def __init__(self, maze, start_cell=(0, 0), exit_cell=None):
+    def __init__(self, maze, slippery=False, start_cell=(0, 0), exit_cell=None):
         """ Create a new maze game.
 
             :param numpy.array maze: 2D array containing empty cells (= 0) and cells occupied with walls (= 1)
@@ -63,6 +64,8 @@ class Maze:
             :param tuple exit_cell: exit cell which the agent has to reach (optional, else lower right)
         """
         self.maze = maze
+
+        self.slippery = slippery
 
         self.__minimum_reward = -0.5 * self.maze.size  # stop game if accumulated reward is below this threshold
 
@@ -161,6 +164,13 @@ class Maze:
             :param Action action: the agent will move in this direction
             :return: state, reward, status
         """
+        intended_action = action
+
+        if self.slippery:
+            if random.uniform(0, 1) < 0.25:
+                action = random.randint(0, 3)
+                logging.debug("slipped | intended action: {:10s} | new action {:10s}".format(Action(intended_action).name, Action(action).name))
+
         reward = self.__execute(action)
         self.__total_reward += reward
         status = self.__status()

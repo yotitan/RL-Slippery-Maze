@@ -9,7 +9,8 @@ from environment.maze import Maze, Render
 
 logging.basicConfig(format="%(levelname)-8s: %(asctime)s: %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.INFO)  # Only show messages *equal to or above* this level
+                    # level=logging.INFO)  # Only show messages *equal to or above* this level
+                    level=logging.DEBUG)  # Only show messages *equal to or above* this level
 
 
 class Test(Enum):
@@ -38,7 +39,7 @@ maze = np.array([
     [0, 0, 0, 0, 0, 1, 0, 0]
 ])  # 0 = free, 1 = occupied
 
-game = Maze(maze)
+game = Maze(maze, slippery=True)
 
 # only show the maze
 if test == Test.SHOW_MAZE_ONLY:
