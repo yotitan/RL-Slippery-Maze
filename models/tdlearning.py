@@ -94,9 +94,16 @@ class TDLearning(AbstractModel):
                     update_action = action_history[0]
                     action_history[:-1] = action_history[1:]
 
+                    reward_term = 0
+
+                    for idx, reward_old in enumerate(reward_history):
+                        reward_term += discount ** idx * reward_old
+
+                    reward_history[:-1] = reward_history[1:]
+
                     next_Q = self.Q.get((next_state, next_action), 0.0)
 
-                    self.Q[(update_state, update_action)] += learning_rate * (reward + discount * next_Q - self.Q[(state, action)])
+                    self.Q[(update_state, update_action)] += learning_rate * (reward_term + discount ** horizon * next_Q - self.Q[(update_state, update_action)])
 
                 if status in (Status.WIN, Status.LOSE):  # terminal state reached, stop training episode
                     break

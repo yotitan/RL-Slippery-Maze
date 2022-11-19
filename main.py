@@ -39,7 +39,7 @@ maze = np.array([
     [0, 0, 0, 0, 0, 1, 0, 0]
 ])  # 0 = free, 1 = occupied
 
-game = Maze(maze, slippery=True)
+game = Maze(maze, slippery=False)
 
 # only show the maze
 if test == Test.SHOW_MAZE_ONLY:
@@ -84,7 +84,7 @@ if test == Test.TD_LEARNING:
     game.render(Render.TRAINING)
     model = models.SarsaTableModel(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
-                             stop_at_convergence=True, horizon=1)
+                             stop_at_convergence=True, horizon=8)
 
 # train using a neural network with experience replay (also saves the resulting model)
 if test == Test.DEEP_Q:
