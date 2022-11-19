@@ -74,7 +74,7 @@ class TDLearning(AbstractModel):
                 action = self.predict(state)
 
             state_history = np.array(horizon)
-            action_history = np.array(action)
+            action_history = np.array(horizon)
             reward_history = np.array(horizon)
 
             while True:
@@ -116,6 +116,17 @@ class TDLearning(AbstractModel):
                 reward_history.append(reward)
 
                 self.environment.render_q(self)
+
+            for idx in range(len(reward_history)):
+                update_state = state_history[idx]
+                update_action = action_history[idx]
+
+                reward_term = 0
+
+                for idx_r, reward_old in enumerate(reward_history[idx:]):
+                    reward_term += discount ** idx_r * reward_old
+                
+                self.Q[(update_state, update_action)] += learning_rate * (reward_term - self.Q[(update_state, update_action)])
 
             cumulative_reward_history.append(cumulative_reward)
 
