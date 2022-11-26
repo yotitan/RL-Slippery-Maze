@@ -159,27 +159,68 @@ class SarsaFixedHorizon(AbstractModel):
         logging.info('cumulative reward: {:f} | mean episode length: {:f}'.format(cumulative_reward, mean_episode_length))
 
         if stop_at_convergence is False:
-            # Record Cumulative Reward History
-            cumulative_reward_df = pd.DataFrame()
-            cumulative_reward_df['Episode'] = np.arange(1, episode + 1)
-            cumulative_reward_df['CumulativeReward'] = cumulative_reward_history
-            cumulative_reward_df['Horizon'] = horizon
+            model = 'SARSA'
+            slippery = self.environment.slippery
 
-            cumulative_reward_file = pd.read_excel('CumulativeReward.xlsx')
-            cumulative_reward_file = cumulative_reward_file[cumulative_reward_file['Horizon']!=horizon].reset_index(drop=True)
+            if learning_rate == 0.1:
+                # Record Cumulative Reward History
+                cumulative_reward_df = pd.DataFrame()
+                cumulative_reward_df['Episode'] = np.arange(1, episode + 1)
+                cumulative_reward_df['CumulativeReward'] = cumulative_reward_history
+                cumulative_reward_df['Horizon'] = horizon
+                cumulative_reward_df['Slippery'] = slippery
+                cumulative_reward_df['Model'] = model
 
-            cumulative_reward_file = pd.concat([cumulative_reward_file, cumulative_reward_df], ignore_index=True)
-            cumulative_reward_file.to_excel('CumulativeReward.xlsx', index=False)
+                cumulative_reward_file = pd.read_excel('CumulativeReward.xlsx')
+                cumulative_reward_file = cumulative_reward_file[
+                                                                    (cumulative_reward_file['Horizon']!=horizon) |
+                                                                    (cumulative_reward_file['Slippery']!=slippery) |
+                                                                    (cumulative_reward_file['Model']!=model)
+                                                                ].reset_index(drop=True)
 
-            # Record Win Rate History
-            win_history_df = pd.DataFrame(win_history, columns=['Episode', 'WinRate'])
-            win_history_df['Horizon'] = horizon
+                cumulative_reward_file = pd.concat([cumulative_reward_file, cumulative_reward_df], ignore_index=True)
+                cumulative_reward_file.to_excel('CumulativeReward.xlsx', index=False)
 
-            win_history_file = pd.read_excel('WinRate.xlsx')
-            win_history_file = win_history_file[win_history_file['Horizon']!=horizon].reset_index(drop=True)
+                logging.info('Updated Cumulative Reward History')
 
-            win_history_file = pd.concat([win_history_file, win_history_df], ignore_index=True)
-            win_history_file.to_excel('WinRate.xlsx', index=False)
+                # Record Win Rate History
+                win_history_df = pd.DataFrame(win_history, columns=['Episode', 'WinRate'])
+                win_history_df['Horizon'] = horizon
+                win_history_df['Slippery'] = slippery
+                win_history_df['Model'] = model
+
+                win_history_file = pd.read_excel('WinRate.xlsx')
+                win_history_file = win_history_file[
+                                                        (win_history_file['Horizon']!=horizon) |
+                                                        (win_history_file['Slippery']!=slippery) |
+                                                        (win_history_file['Model']!=model)
+                                                    ].reset_index(drop=True)
+
+                win_history_file = pd.concat([win_history_file, win_history_df], ignore_index=True)
+                win_history_file.to_excel('WinRate.xlsx', index=False)
+
+                logging.info('Updated Win Rate History')
+
+            # Record Mean Episode Length
+            mean_episode_length_df = pd.DataFrame()
+            mean_episode_length_df['Slippery'] = [slippery]
+            mean_episode_length_df['Model'] = model
+            mean_episode_length_df['Horizon'] = horizon
+            mean_episode_length_df['Alpha'] = learning_rate
+            mean_episode_length_df['MeanEpisodeLength'] = mean_episode_length
+
+            mean_episode_length_file = pd.read_excel('MeanEpisodeLength.xlsx')
+            mean_episode_length_file = mean_episode_length_file[
+                                                    (mean_episode_length_file['Horizon']!=horizon) |
+                                                    (mean_episode_length_file['Slippery']!=slippery) |
+                                                    (mean_episode_length_file['Model']!=model) |
+                                                    (mean_episode_length_file['Alpha']!=learning_rate)
+                                                ].reset_index(drop=True)
+
+            mean_episode_length_file = pd.concat([mean_episode_length_file, mean_episode_length_df], ignore_index=True)
+            mean_episode_length_file.to_excel('MeanEpisodeLength.xlsx', index=False)
+
+            logging.info('Updated Mean Episode Length History')
 
         return cumulative_reward_history, win_history, episode, datetime.now() - start_time
 

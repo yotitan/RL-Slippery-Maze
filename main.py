@@ -57,7 +57,7 @@ if test == Test.Q_LEARNING:
     game.render(Render.TRAINING)
     model = models.QTableModel(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
-                             stop_at_convergence=True)
+                             stop_at_convergence=False, exploration_decay=1)
 
 # train using tabular Q-learning and an eligibility trace (aka TD-lambda)
 if test == Test.Q_ELIGIBILITY:
