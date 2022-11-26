@@ -9,7 +9,7 @@ from environment import Status
 from models import AbstractModel
 
 
-class QTableModel(AbstractModel):
+class QLearnFixedHorizon(AbstractModel):
     """ Tabular Q-learning prediction model.
 
         For every state (here: the agents current location ) the value for each of the actions is stored in a table.
@@ -46,6 +46,7 @@ class QTableModel(AbstractModel):
         exploration_decay = kwargs.get("exploration_decay", 0.995)  # % reduction per step = 100 - exploration decay
         learning_rate = kwargs.get("learning_rate", 0.10)
         episodes = max(kwargs.get("episodes", 1000), 1)
+        horizon = max(kwargs.get("horizon", 1), 1)
         check_convergence_every = kwargs.get("check_convergence_every", self.default_check_convergence_every)
 
         # variables for reporting purposes
@@ -69,8 +70,14 @@ class QTableModel(AbstractModel):
             state = self.environment.reset(start_cell)
             state = tuple(state.flatten())  # change np.ndarray to tuple so it can be used as dictionary key
 
+            state_history = []
+            action_history = []
+            reward_history = []
+
             while True:
                 mean_episode_length += 1
+
+                state_history.append(state)
 
                 # choose action epsilon greedy (off-policy, instead of only using the learned policy)
                 if np.random.random() < exploration_rate:
@@ -78,17 +85,34 @@ class QTableModel(AbstractModel):
                 else:
                     action = self.predict(state)
 
+                action_history.append(action)
+
                 next_state, reward, status = self.environment.step(action)
                 next_state = tuple(next_state.flatten())
 
+                reward_history.append(reward)
                 cumulative_reward += reward
 
                 if (state, action) not in self.Q.keys():  # ensure value exists for (state, action) to avoid a KeyError
                     self.Q[(state, action)] = 0.0
 
-                max_next_Q = max([self.Q.get((next_state, a), 0.0) for a in self.environment.actions])
+                if len(state_history) >= horizon:
+                    update_state = state_history[0]
+                    state_history = state_history[1:]
 
-                self.Q[(state, action)] += learning_rate * (reward + discount * max_next_Q - self.Q[(state, action)])
+                    update_action = action_history[0]
+                    action_history = action_history[1:]
+
+                    reward_term = 0
+
+                    for idx, reward_old in enumerate(reward_history):
+                        reward_term += discount ** idx * reward_old
+
+                    reward_history = reward_history[1:]
+
+                    max_next_Q = max([self.Q.get((next_state, a), 0.0) for a in self.environment.actions])
+
+                    self.Q[(update_state, update_action)] += learning_rate * (reward_term + discount ** horizon * max_next_Q - self.Q[(update_state, update_action)])
 
                 if status in (Status.WIN, Status.LOSE):  # terminal state reached, stop training episode
                     break
@@ -96,6 +120,17 @@ class QTableModel(AbstractModel):
                 state = next_state
 
                 self.environment.render_q(self)
+
+            for idx in range(len(reward_history)):
+                update_state = state_history[idx]
+                update_action = action_history[idx]
+
+                reward_term = 0
+
+                for idx_r, reward_old in enumerate(reward_history[idx:]):
+                    reward_term += discount ** idx_r * reward_old
+                
+                self.Q[(update_state, update_action)] += learning_rate * (reward_term - self.Q[(update_state, update_action)])
 
             cumulative_reward_history.append(cumulative_reward)
 
@@ -119,7 +154,6 @@ class QTableModel(AbstractModel):
         logging.info('cumulative reward: {:f} | mean episode length: {:f}'.format(cumulative_reward, mean_episode_length))
 
         if stop_at_convergence is False:
-            horizon = 0
             model = 'QLEARN'
             slippery = self.environment.slippery
 
