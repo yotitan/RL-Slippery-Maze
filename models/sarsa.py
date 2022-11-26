@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 
 from environment import Status
 from models import AbstractModel
@@ -55,6 +56,8 @@ class SarsaTableModel(AbstractModel):
         start_list = list()
         start_time = datetime.now()
 
+        mean_episode_length = 0
+
         # training starts here
         for episode in range(1, episodes + 1):
             # optimization: make sure to start from all possible cells
@@ -72,6 +75,8 @@ class SarsaTableModel(AbstractModel):
                 action = self.predict(state)
 
             while True:
+
+                mean_episode_length += 1
 
                 next_state, reward, status = self.environment.step(action)
                 next_state = tuple(next_state.flatten())
@@ -111,6 +116,23 @@ class SarsaTableModel(AbstractModel):
             exploration_rate *= exploration_decay  # explore less as training progresses
 
         logging.info("episodes: {:d} | time spent: {}".format(episode, datetime.now() - start_time))
+
+        mean_episode_length /= episode
+        logging.info('cumulative reward: {:f} | mean episode length: {:f}'.format(cumulative_reward, mean_episode_length))
+
+        if stop_at_convergence is False:
+            horizon = 0
+
+            cumulative_reward_df = pd.DataFrame()
+            cumulative_reward_df['Episode'] = np.arange(1, episode + 1)
+            cumulative_reward_df['CumulativeReward'] = cumulative_reward_history
+            cumulative_reward_df['Horizon'] = horizon
+
+            cumulative_reward_file = pd.read_excel('CumulativeReward.xlsx')
+            cumulative_reward_file = cumulative_reward_file[cumulative_reward_file['Horizon']!=horizon].reset_index(drop=True)
+
+            cumulative_reward_file = pd.concat([cumulative_reward_file, cumulative_reward_df], ignore_index=True)
+            cumulative_reward_file.to_excel('CumulativeReward.xlsx', index=False)
 
         return cumulative_reward_history, win_history, episode, datetime.now() - start_time
 

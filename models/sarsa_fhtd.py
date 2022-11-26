@@ -3,12 +3,13 @@ import random
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 
 from environment import Status
 from models import AbstractModel
 
 
-class TDLearning(AbstractModel):
+class SarsaFixedHorizon(AbstractModel):
     """ Temopral Difference Learning based prediction model.
 
         For every state (here: the agents current location ) the value for each of the actions is stored in a table.
@@ -46,7 +47,7 @@ class TDLearning(AbstractModel):
         exploration_decay = kwargs.get("exploration_decay", 0.995)  # % reduction per step = 100 - exploration decay
         learning_rate = kwargs.get("learning_rate", 0.10)
         episodes = max(kwargs.get("episodes", 1000), 1)
-        horizon = max(kwargs.get("horizon",32), 1)
+        horizon = max(kwargs.get("horizon", 1), 1)
         check_convergence_every = kwargs.get("check_convergence_every", self.default_check_convergence_every)
 
         # variables for reporting purposes
@@ -56,6 +57,8 @@ class TDLearning(AbstractModel):
 
         start_list = list()
         start_time = datetime.now()
+
+        mean_episode_length = 0
 
         # training starts here
         for episode in range(1, episodes + 1):
@@ -73,33 +76,40 @@ class TDLearning(AbstractModel):
             else:
                 action = self.predict(state)
 
-            state_history = np.array(horizon)
-            action_history = np.array(horizon)
-            reward_history = np.array(horizon)
+            state_history = []
+            state_history.append( state )
+
+            action_history = []
+            action_history.append( action )
+
+            reward_history = []
 
             while True:
+                mean_episode_length += 1
+
                 next_state, reward, status = self.environment.step(action)
                 next_state = tuple(next_state.flatten())
-                next_action = self.predict(next_state)  # use the model to get the next action
+                next_action = self.predict(next_state)  # choose A(t+1) greedily
 
+                reward_history.append(reward)
                 cumulative_reward += reward
 
                 if (state, action) not in self.Q.keys():  # ensure value exists for (state, action) to avoid a KeyError
                     self.Q[(state, action)] = 0.0
                 
-                if len( state_history ) >= horizon:
+                if len(state_history) >= horizon:
                     update_state = state_history[0]
-                    state_history[:-1] = state_history[1:]
+                    state_history = state_history[1:]
 
                     update_action = action_history[0]
-                    action_history[:-1] = action_history[1:]
+                    action_history = action_history[1:]
 
                     reward_term = 0
 
                     for idx, reward_old in enumerate(reward_history):
                         reward_term += discount ** idx * reward_old
 
-                    reward_history[:-1] = reward_history[1:]
+                    reward_history = reward_history[1:]
 
                     next_Q = self.Q.get((next_state, next_action), 0.0)
 
@@ -109,11 +119,10 @@ class TDLearning(AbstractModel):
                     break
 
                 state = next_state
-                action = next_action  # SARSA is on-policy: always follow the predicted action
+                action = next_action
 
                 state_history.append(next_state)
                 action_history.append(next_action)
-                reward_history.append(reward)
 
                 self.environment.render_q(self)
 
@@ -145,6 +154,32 @@ class TDLearning(AbstractModel):
             exploration_rate *= exploration_decay  # explore less as training progresses
 
         logging.info("episodes: {:d} | time spent: {}".format(episode, datetime.now() - start_time))
+
+        mean_episode_length /= episode
+        logging.info('cumulative reward: {:f} | mean episode length: {:f}'.format(cumulative_reward, mean_episode_length))
+
+        if stop_at_convergence is False:
+            # Record Cumulative Reward History
+            cumulative_reward_df = pd.DataFrame()
+            cumulative_reward_df['Episode'] = np.arange(1, episode + 1)
+            cumulative_reward_df['CumulativeReward'] = cumulative_reward_history
+            cumulative_reward_df['Horizon'] = horizon
+
+            cumulative_reward_file = pd.read_excel('CumulativeReward.xlsx')
+            cumulative_reward_file = cumulative_reward_file[cumulative_reward_file['Horizon']!=horizon].reset_index(drop=True)
+
+            cumulative_reward_file = pd.concat([cumulative_reward_file, cumulative_reward_df], ignore_index=True)
+            cumulative_reward_file.to_excel('CumulativeReward.xlsx', index=False)
+
+            # Record Win Rate History
+            win_history_df = pd.DataFrame(win_history, columns=['Episode', 'WinRate'])
+            win_history_df['Horizon'] = horizon
+
+            win_history_file = pd.read_excel('WinRate.xlsx')
+            win_history_file = win_history_file[win_history_file['Horizon']!=horizon].reset_index(drop=True)
+
+            win_history_file = pd.concat([win_history_file, win_history_df], ignore_index=True)
+            win_history_file.to_excel('WinRate.xlsx', index=False)
 
         return cumulative_reward_history, win_history, episode, datetime.now() - start_time
 

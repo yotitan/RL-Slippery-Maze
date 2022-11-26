@@ -23,10 +23,10 @@ class Test(Enum):
     LOAD_DEEP_Q = auto()
     SPEED_TEST_1 = auto()
     SPEED_TEST_2 = auto()
-    TD_LEARNING = auto()
+    SARSA_FHTD = auto()
 
 
-test = Test.TD_LEARNING  # which test to run
+test = Test.SARSA  # which test to run
 
 maze = np.array([
     [0, 1, 0, 0, 0, 0, 0, 0],
@@ -63,15 +63,15 @@ if test == Test.Q_LEARNING:
 if test == Test.Q_ELIGIBILITY:
     game.render(Render.TRAINING)
     model = models.QTableTraceModel(game)
-    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
-                             stop_at_convergence=True)
+    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=0.10, episodes=200,
+                             stop_at_convergence=False)
 
 # train using tabular SARSA learning
 if test == Test.SARSA:
     game.render(Render.TRAINING)
     model = models.SarsaTableModel(game)
-    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
-                             stop_at_convergence=True)
+    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=0.10, episodes=200,
+                             stop_at_convergence=False, exploration_decay=1)
 
 # train using tabular SARSA learning and an eligibility trace
 if test == Test.SARSA_ELIGIBILITY:
@@ -80,11 +80,11 @@ if test == Test.SARSA_ELIGIBILITY:
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
                              stop_at_convergence=True)
 
-if test == Test.TD_LEARNING:
+if test == Test.SARSA_FHTD:
     game.render(Render.TRAINING)
-    model = models.SarsaTableModel(game)
-    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.10, learning_rate=0.10, episodes=200,
-                             stop_at_convergence=True, horizon=8)
+    model = models.SarsaFixedHorizon(game)
+    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=0.10, episodes=200,
+                             stop_at_convergence=False, exploration_decay=1, horizon=1)
 
 # train using a neural network with experience replay (also saves the resulting model)
 if test == Test.DEEP_Q:

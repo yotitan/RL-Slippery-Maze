@@ -5,3 +5,4 @@ from .qtable import *
 from .qtable_trace import *
 from .sarsa import *
 from .sarsa_trace import *
+from .sarsa_fhtd import *
