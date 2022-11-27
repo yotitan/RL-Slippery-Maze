@@ -42,7 +42,7 @@ maze = np.array([
     [0, 0, 0, 0, 0, 1, 0, 0]
 ])  # 0 = free, 1 = occupied
 
-game = Maze(maze, slippery=False)
+game = Maze(maze, slippery=True)
 
 # train using tabular SARSA learning
 if test == Test.SARSA:
