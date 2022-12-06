@@ -23,12 +23,12 @@ class Test(Enum):
     LOAD_DEEP_Q = auto()
     SPEED_TEST_1 = auto()
     SPEED_TEST_2 = auto()
-    SARSA_FHTD = auto()
+    SARSA_NSTEP = auto()
     Q_LEARNING_FHTD = auto()
     Q_LEARNING_NSTEP = auto()
 
-# test=Test.SARSA
-test = Test.Q_LEARNING_FHTD
+test=Test.SARSA_NSTEP
+# test = Test.Q_LEARNING_FHTD
 learning_rate = 0.10
 episodes = 500
 
@@ -52,11 +52,11 @@ if test == Test.SARSA:
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
                              stop_at_convergence=False, exploration_decay=1)
 
-if test == Test.SARSA_FHTD:
-    game.render(Render.TRAINING)
-    model = models.SarsaFixedHorizon(game)
+if test == Test.SARSA_NSTEP:
+    # game.render(Render.TRAINING)
+    model = models.SarsaNStep(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
-                             stop_at_convergence=False, exploration_decay=1, horizon=1)
+                             stop_at_convergence=False, exploration_decay=1, steps=1)
 
 # train using tabular Q-learning
 if test == Test.Q_LEARNING:
