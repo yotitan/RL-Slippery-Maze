@@ -27,8 +27,8 @@ class Test(Enum):
     Q_LEARNING_FHTD = auto()
     Q_LEARNING_NSTEP = auto()
 
-test=Test.SARSA_NSTEP
-# test = Test.Q_LEARNING_FHTD
+# test=Test.SARSA_NSTEP
+test = Test.Q_LEARNING_FHTD
 learning_rate = 0.10
 episodes = 500
 
@@ -75,7 +75,7 @@ if test == Test.Q_LEARNING_FHTD:
     # game.render(Render.TRAINING)
     model = models.QLearnFixedHorizon(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
-                             stop_at_convergence=False, exploration_decay=1, horizon=1)
+                             stop_at_convergence=False, exploration_decay=1, horizon=16)
 
 # only show the maze
 if test == Test.SHOW_MAZE_ONLY:
