@@ -59,6 +59,12 @@ class QLearnFixedHorizon(AbstractModel):
 
         mean_episode_length = 0
 
+        maze_rows, maze_cols = np.shape(self.environment.maze)
+
+        num_actions = len(self.environment.actions)
+        fhtd_q_table = np.zeros((maze_rows, maze_cols, len(self.environment.actions), horizon + 1))
+        fhtd_q_table[:, :, :, 0] = 0.
+
         # training starts here
         for episode in range(1, episodes + 1):
             # optimization: make sure to start from all possible cells
@@ -70,14 +76,8 @@ class QLearnFixedHorizon(AbstractModel):
             state = self.environment.reset(start_cell)
             state = tuple(state.flatten())  # change np.ndarray to tuple so it can be used as dictionary key
 
-            state_history = []
-            action_history = []
-            reward_history = []
-
             while True:
                 mean_episode_length += 1
-
-                state_history.append(state)
 
                 # choose action epsilon greedy (off-policy, instead of only using the learned policy)
                 if np.random.random() < exploration_rate:
@@ -85,34 +85,39 @@ class QLearnFixedHorizon(AbstractModel):
                 else:
                     action = self.predict(state)
 
-                action_history.append(action)
-
                 next_state, reward, status = self.environment.step(action)
                 next_state = tuple(next_state.flatten())
 
-                reward_history.append(reward)
                 cumulative_reward += reward
+                
+                ######################################################################
+                for h in range(1, horizon + 1):
+
+                    # Estimate V_(h-1)(s_(t+1)): the reward accrued in h-1 steps
+                    # from the next state
+                    if status == Status.PLAYING:
+                        future_q = np.max([fhtd_q_table[next_state[0], next_state[1], action_i, h - 1] for action_i in range(num_actions)])
+                    else:
+                        future_q = 0.
+
+                    # Bootstrap the V_h value off the future value estimate for the
+                    # next state, added to the reward received in getting to that
+                    # next state
+                    q_target = reward + discount * future_q
+
+                    # Update the V_h estimate towards the future estimate
+                    fhtd_q_table[state[0], state[1], action, h] += learning_rate * (q_target - fhtd_q_table[state[0], state[1], action, h])
+                ######################################################################
 
                 if (state, action) not in self.Q.keys():  # ensure value exists for (state, action) to avoid a KeyError
                     self.Q[(state, action)] = 0.0
 
-                if len(state_history) >= horizon:
-                    update_state = state_history[0]
-                    state_history = state_history[1:]
+                # max_next_Q = max([self.Q.get((next_state, a), 0.0) for a in self.environment.actions])
+                # self.Q[(update_state, update_action)] += learning_rate * (reward_term + discount ** horizon * max_next_Q - self.Q[(update_state, update_action)])
 
-                    update_action = action_history[0]
-                    action_history = action_history[1:]
-
-                    reward_term = 0
-
-                    for idx, reward_old in enumerate(reward_history):
-                        reward_term += discount ** idx * reward_old
-
-                    reward_history = reward_history[1:]
-
-                    max_next_Q = max([self.Q.get((next_state, a), 0.0) for a in self.environment.actions])
-
-                    self.Q[(update_state, update_action)] += learning_rate * (reward_term + discount ** horizon * max_next_Q - self.Q[(update_state, update_action)])
+                for idx, val in np.ndenumerate( fhtd_q_table[:,:,:,-1] ):
+                    # print( idx[0:2], idx[2], val )
+                    self.Q[(idx[0:2], idx[2])] = val
 
                 if status in (Status.WIN, Status.LOSE):  # terminal state reached, stop training episode
                     break
@@ -120,17 +125,6 @@ class QLearnFixedHorizon(AbstractModel):
                 state = next_state
 
                 self.environment.render_q(self)
-
-            for idx in range(len(reward_history)):
-                update_state = state_history[idx]
-                update_action = action_history[idx]
-
-                reward_term = 0
-
-                for idx_r, reward_old in enumerate(reward_history[idx:]):
-                    reward_term += discount ** idx_r * reward_old
-                
-                self.Q[(update_state, update_action)] += learning_rate * (reward_term - self.Q[(update_state, update_action)])
 
             cumulative_reward_history.append(cumulative_reward)
 
