@@ -30,7 +30,7 @@ class Test(Enum):
 # test=Test.SARSA
 test = Test.Q_LEARNING_FHTD
 learning_rate = 0.10
-episodes = 200
+episodes = 500
 
 maze = np.array([
     [0, 1, 0, 0, 0, 0, 0, 0],
@@ -69,13 +69,13 @@ if test == Test.Q_LEARNING_NSTEP:
     # game.render(Render.TRAINING)
     model = models.QLearnNStep(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
-                             stop_at_convergence=False, exploration_decay=1, steps=8)
+                             stop_at_convergence=False, exploration_decay=1, steps=1)
                         
 if test == Test.Q_LEARNING_FHTD:
     # game.render(Render.TRAINING)
     model = models.QLearnFixedHorizon(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
-                             stop_at_convergence=False, exploration_decay=1, horizon=8)
+                             stop_at_convergence=False, exploration_decay=1, horizon=1)
 
 # only show the maze
 if test == Test.SHOW_MAZE_ONLY:
