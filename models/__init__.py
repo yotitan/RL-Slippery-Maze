@@ -7,3 +7,4 @@ from .sarsa import *
 from .sarsa_trace import *
 from .sarsa_fhtd import *
 from .qlearn_fhtd import *
+from .qlearn_nstep import *

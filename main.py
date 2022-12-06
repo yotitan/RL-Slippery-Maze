@@ -25,6 +25,7 @@ class Test(Enum):
     SPEED_TEST_2 = auto()
     SARSA_FHTD = auto()
     Q_LEARNING_FHTD = auto()
+    Q_LEARNING_NSTEP = auto()
 
 # test=Test.SARSA
 test = Test.Q_LEARNING_FHTD
@@ -59,16 +60,22 @@ if test == Test.SARSA_FHTD:
 
 # train using tabular Q-learning
 if test == Test.Q_LEARNING:
-    game.render(Render.TRAINING)
+    # game.render(Render.TRAINING)
     model = models.QTableModel(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
                              stop_at_convergence=False, exploration_decay=1)
                         
+if test == Test.Q_LEARNING_NSTEP:
+    # game.render(Render.TRAINING)
+    model = models.QLearnNStep(game)
+    h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
+                             stop_at_convergence=False, exploration_decay=1, steps=8)
+                        
 if test == Test.Q_LEARNING_FHTD:
-    game.render(Render.TRAINING)
+    # game.render(Render.TRAINING)
     model = models.QLearnFixedHorizon(game)
     h, w, _, _ = model.train(discount=0.90, exploration_rate=0.20, learning_rate=learning_rate, episodes=episodes,
-                             stop_at_convergence=False, exploration_decay=1, horizon=4)
+                             stop_at_convergence=False, exploration_decay=1, horizon=8)
 
 # only show the maze
 if test == Test.SHOW_MAZE_ONLY:
